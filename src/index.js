@@ -1,4 +1,3 @@
-
 import React from 'react';
 import ReactDOM from 'react-dom';
 import './index.css';
@@ -55,21 +54,22 @@ class GameOptions extends React.Component{
     return(
       <div>
         <form onSubmit={this.handlesubmit}>
-          <label for="firstplayer">
+          <label className="firstplayer" >
             Choose first player:
             <select value={this.state.firstplayer} onChange={this.handleplayerchange}>
               <option value={1}>You</option>
               <option value={2}>Computer</option>
             </select>
           </label>
-          <label for="difficulty">
+          <label className="difficulty">
             Set difficulty:
             <select value={this.state.difficulty} onChange={this.handlediffchange}>
-              <option value={80}>Easy</option>
-              <option value={100}>Hard</option>
+              <option value={0.7}>Easy</option>
+              <option value={0.85}>Medium</option>
+              <option value={1}>Hard</option>
             </select>
           </label>
-          <input type="submit" value="Start Game" />
+          <input className="startbutton" type="submit" value="Start Game" />
         </form>
       </div>
     );
@@ -85,28 +85,42 @@ class Board extends React.Component {
     }
     this.compmove=this.compmove.bind(this);
   }
-  compmove(squarenum,squarestmp,n){
-    let tmp=backtracking(squarenum.slice(),2);
-    if(tmp[0]>=0 && tmp[0]<9){
-      squarestmp[tmp[0]]='O';
+  compmove(squarenum,squarestmp){
+    var possiblemoves=[],size=0;
+    for(let i=0;i<9;++i){
+      if(squarenum[i]===0){
+        possiblemoves.push(i);
+        size++;
+      }
+    }
+    var r=Math.random();
+    if(r>this.props.difficulty){
+      var m=Math.floor(Math.random()*size);
+      squarestmp[possiblemoves[m]]='O';
     }
     else{
-      this.setState({gamestate:((tmp[1]>0)?2:((tmp[1]===0)?0:1))});
+      let tmp=backtracking(squarenum.slice(),2);
+      if(tmp[0]>=0 && tmp[0]<9){
+        squarestmp[tmp[0]]='O';
+      }
+      else{
+        this.setState({gamestate:((tmp[1]>0)?2:((tmp[1]===0)?0:1))});
+      }
     }
+    this.setState({squares:squarestmp});
     var tmp2=calculatewinner(squarestmp);
-    if(n===1 || tmp2){
+    if(size===1 || tmp2){
       this.setState({gamestate:tmp2});
     }
+
   }
   handleclick(i){
-    var squarestmp=this.state.squares.slice();var squarenum=Array(9).fill(0),n=0;
+    var squarestmp=this.state.squares.slice();var squarenum=Array(9).fill(0);
     for(let j=0;j<9;j++){
       if(squarestmp[j]==='X')
         squarenum[j]=1;
       else if(squarestmp[j]==='O')
         squarenum[j]=2;
-      else
-        n++;
     }
     if(squarestmp[i]!==null || this.state.gamestate!=null){
       alert('illegal move');
@@ -114,8 +128,8 @@ class Board extends React.Component {
     else{
       squarenum[i]=1;
       squarestmp[i]='X';
-      this.compmove(squarenum,squarestmp,n);
-      this.setState({squares:squarestmp});
+      this.compmove(squarenum,squarestmp);
+      
     } 
   }
   renderSquare(i) {
@@ -127,13 +141,14 @@ class Board extends React.Component {
     );
   }
   render() {
-    const status = (this.state.gamestate!==null)? ((this.state.gamestate===0)?'Draw':'winner is '+this.state.gamestate):'Your Turn';
+    const status = (this.state.gamestate!==null)? ((this.state.gamestate===0)?'Draw':'winner is '+this.state.gamestate):'Play';
     if(this.props.reset){
       this.setState({squares:Array(9).fill(null),gamestate:null});
       if(this.props.firstplayer==2){
-        var tmp=backtracking(Array(9).fill(0),2),squarestmp2=Array(9).fill(null);
-        squarestmp2[tmp[0]]='O';
-        this.setState({squares: squarestmp2});
+        // var tmp=backtracking(Array(9).fill(0),2),squarestmp2=Array(9).fill(null);
+        // squarestmp2[tmp[0]]='O';
+        // this.setState({squares: squarestmp2});
+        this.compmove(Array(9).fill(0),Array(9).fill(null));
       }
       this.props.resetdone();
     }
@@ -165,7 +180,7 @@ class Game extends React.Component {
     super(props);
     this.state={
       firstplayer:1,
-      difficulty:80,
+      difficulty:0.7,
       reset:false,
     }
     this.startgame=this.startgame.bind(this);

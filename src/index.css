@@ -6,11 +6,23 @@ body {
   ol, ul {
     padding-left: 30px;
   }
+  .firstplayer:after{
+    content:"   ";
+  }
+  .startbutton{
+    margin-left: 20px;
+  }
+
+  .game-options {
+    margin-bottom: 50px;
+    margin-right: 50px;
+  }
   
   .board-row:after {
     clear: both;
     content: "";
     display: table;
+    
   }
   
   .status {
@@ -44,7 +56,14 @@ body {
     display: flex;
     flex-direction: row;
   }
-  
+
+  .game-board:before {
+    content: "\a\a";
+    white-space: pre;
+  }
+  .game-board{
+    margin-left: -510px;
+  }
   .game-info {
     margin-left: 20px;
   }
