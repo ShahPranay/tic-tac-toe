@@ -30,12 +30,72 @@ function calculatewinner(squares){
   return 0;
 }
 
+class GameOptions extends React.Component{
+  constructor(props){
+    super(props);
+    this.state={
+      firstplayer:this.props.firstplayer,
+      difficulty:this.props.difficulty,
+    }
+    this.handleplayerchange=this.handleplayerchange.bind(this);
+    this.handlediffchange=this.handlediffchange.bind(this);
+    this.handlesubmit=this.handlesubmit.bind(this);
+  }
+  handleplayerchange(event){
+    this.setState({firstplayer: event.target.value});
+  }
+  handlediffchange(event){
+    this.setState({difficulty: event.target.value});
+  }
+  handlesubmit(event){
+    this.props.onstart(this.state.firstplayer,this.state.difficulty);
+    event.preventDefault();
+  }
+  render(){
+    return(
+      <div>
+        <form onSubmit={this.handlesubmit}>
+          <label for="firstplayer">
+            Choose first player:
+            <select value={this.state.firstplayer} onChange={this.handleplayerchange}>
+              <option value={1}>You</option>
+              <option value={2}>Computer</option>
+            </select>
+          </label>
+          <label for="difficulty">
+            Set difficulty:
+            <select value={this.state.difficulty} onChange={this.handlediffchange}>
+              <option value={80}>Easy</option>
+              <option value={100}>Hard</option>
+            </select>
+          </label>
+          <input type="submit" value="Start Game" />
+        </form>
+      </div>
+    );
+  }
+}
+
 class Board extends React.Component {
   constructor(props){
     super(props);
     this.state={
       squares:Array(9).fill(null),
       gamestate:null,
+    }
+    this.compmove=this.compmove.bind(this);
+  }
+  compmove(squarenum,squarestmp,n){
+    let tmp=backtracking(squarenum.slice(),2);
+    if(tmp[0]>=0 && tmp[0]<9){
+      squarestmp[tmp[0]]='O';
+    }
+    else{
+      this.setState({gamestate:((tmp[1]>0)?2:((tmp[1]===0)?0:1))});
+    }
+    var tmp2=calculatewinner(squarestmp);
+    if(n===1 || tmp2){
+      this.setState({gamestate:tmp2});
     }
   }
   handleclick(i){
@@ -53,18 +113,8 @@ class Board extends React.Component {
     }
     else{
       squarenum[i]=1;
-      let tmp=backtracking(squarenum.slice(),2);
       squarestmp[i]='X';
-      if(tmp[1]>=0 && tmp[1]<9){
-        squarestmp[tmp[1]]='O';
-      }
-      else{
-        this.setState({gamestate:tmp[0]});
-      }
-      var tmp2=calculatewinner(squarestmp);
-      if(n===8 || tmp2){
-        this.setState({gamestate:tmp2});
-      }
+      this.compmove(squarenum,squarestmp,n);
       this.setState({squares:squarestmp});
     } 
   }
@@ -78,6 +128,15 @@ class Board extends React.Component {
   }
   render() {
     const status = (this.state.gamestate!==null)? ((this.state.gamestate===0)?'Draw':'winner is '+this.state.gamestate):'Your Turn';
+    if(this.props.reset){
+      this.setState({squares:Array(9).fill(null),gamestate:null});
+      if(this.props.firstplayer==2){
+        var tmp=backtracking(Array(9).fill(0),2),squarestmp2=Array(9).fill(null);
+        squarestmp2[tmp[0]]='O';
+        this.setState({squares: squarestmp2});
+      }
+      this.props.resetdone();
+    }
     return (
       <div>
         <div className="status">{status}</div>
@@ -102,11 +161,30 @@ class Board extends React.Component {
 }
 
 class Game extends React.Component {
+  constructor(props){
+    super(props);
+    this.state={
+      firstplayer:1,
+      difficulty:80,
+      reset:false,
+    }
+    this.startgame=this.startgame.bind(this);
+    this.resetdone=this.resetdone.bind(this);
+  }
+  startgame(player,diff){
+    this.setState({firstplayer: player, difficulty: diff,reset:true});
+  }
+  resetdone(){
+    this.setState({reset:false});
+  }
   render() {
     return (
       <div className="game">
+        <div className="game-options">
+          <GameOptions firstplayer={this.state.firstplayer} difficulty={this.state.difficulty} onstart={this.startgame} />
+        </div>
         <div className="game-board">
-          <Board />
+          <Board firstplayer={this.state.firstplayer} difficulty={this.state.difficulty} reset={this.state.reset} resetdone={this.resetdone}/>
         </div>
         <div className="game-info">
           <div>{/* status */}</div>
@@ -130,14 +208,6 @@ function backtracking(squares,player){
     return player2[id];
   if(player===1 && (id in player1))
     return player1[id];
-  var tmp=calculatewinner(squares);
-  if(tmp!==0){
-    if(player===2)
-      player2[id]=[tmp,-1,-Infinity];
-    else
-      player1[id]=[tmp,-1,-Infinity];
-    return [tmp,-1,-Infinity];
-  }
   var possiblemoves=[],n=0;
   for(let i=0;i<9;++i){
     if(squares[i]===0){
@@ -145,37 +215,46 @@ function backtracking(squares,player){
       ++n;
     }
   }
+  var tmp=calculatewinner(squares);
+  if(tmp!==0){
+    if(tmp===2){
+      player2[id]=[-1,10+n];
+      return player2[id];
+    }
+    else{
+      player1[id]=[-1,-10-n];
+      return player1[id];
+    }
+  }
+  
   if(n===0)
-    return [0,-1,-Infinity];
-  var wincnt=0,move=0,bestmove=[0,-1,Infinity];
+    return [-1,0];
+  var bestmove,haswon=0;
+  if(player===2)
+    bestmove=[-1,-Infinity];
+  else
+    bestmove=[-1,Infinity];
   var nxt=(player===1)?2:1;
   for(let i=0;i<n;i++){
     squares[possiblemoves[i]]=player;
-    var [winnertmp,nextmove,wincntnxt]=backtracking(squares.slice(),nxt);
-    if(winnertmp===player){
-      wincnt++;
-      if(bestmove[0]!==player || wincntnxt<bestmove[2]){
-        bestmove=[winnertmp,nextmove,wincntnxt];move=possiblemoves[i];
+    var nextans=backtracking(squares,nxt);
+    if(haswon===0){
+      if(player===2){
+        if(nextans[1]>bestmove[1])
+          bestmove=[possiblemoves[i],nextans[1]];
       }
-    }
-    else if(winnertmp===nxt){
-      wincnt--;
-      if(bestmove[2]===Infinity){
-        bestmove=[winnertmp,nextmove,wincntnxt];move=possiblemoves[i];
-      }
-    }
-    else{
-      if(bestmove[0]===nxt || (bestmove[0]===0 && wincntnxt<bestmove[2])){
-        bestmove=[winnertmp,nextmove,wincntnxt];move=possiblemoves[i];
+      else{
+        if(nextans[1]<bestmove[1])
+          bestmove=[possiblemoves[i],nextans[1]];
       }
     }
     squares[possiblemoves[i]]=0;
   }
   if(player===2)
-    player2[id]=[bestmove[0],move,wincnt];
+    player2[id]=bestmove;
   else
-    player1[id]=[bestmove[0],move,wincnt];
-  return [bestmove[0],move,wincnt];
+    player1[id]=bestmove;
+  return bestmove;
 }
 
 for(let i=0;i<9;++i){
