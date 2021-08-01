@@ -141,7 +141,38 @@ class Board extends React.Component {
     );
   }
   render() {
-    const status = (this.state.gamestate!==null)? ((this.state.gamestate===0)?'Draw':'winner is '+this.state.gamestate):'Play';
+    var status = 'Play';
+    const winlines=[
+      "You- You must have cheated!",
+      "This can't be possible!",
+      "What kind of a loser plays in easy modes?!",
+      "You Win!",
+      "I demand a rematch!",
+    ];
+    const loselines=[
+      "Ha! Ha! Noob!",
+      "Even before we started I knew I would win.",
+      "Try an easier difficulty level, loser!",
+      "You Lose!",
+    ];
+    const drawlines=[
+      "Draw",
+      "As Expected, You can't win against me!",
+      "Good game!",
+      "Don't get cocky and think that you're equal to me or something!",
+    ];
+    if(this.state.gamestate!==null){
+      var gs=this.state.gamestate;
+      if(gs===0){
+        status=drawlines[Math.floor(Math.random()*(drawlines.length-1))];
+      }
+      else if(gs==='X'){
+        status=winlines[Math.floor(Math.random()*(winlines.length-1))];
+      }
+      else{
+        status=loselines[Math.floor(Math.random()*(loselines.length-1))];
+      }
+    }
     if(this.props.reset){
       this.setState({squares:Array(9).fill(null),gamestate:null});
       if(this.props.firstplayer==2){
@@ -204,6 +235,9 @@ class Game extends React.Component {
         <div className="game-info">
           <div>{/* status */}</div>
           <ol>{/* TODO */}</ol>
+        </div>
+        <div className="source">
+          <a href="https://github.com/ShahPranay/tic-tac-toe" target="_blank">Source Code</a>
         </div>
       </div>
     );
